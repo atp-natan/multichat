@@ -85,5 +85,6 @@ contextBridge.exposeInMainWorld("electron", {
 	reloadAccounts: (cb) => ipcRenderer.on("reload-accounts", cb),
 	onUpdateUnread: (cb) => ipcRenderer.on("update-unread", (e, data) => cb(data)),
 	onActiveAccount: (cb) => ipcRenderer.on("active-account", (e, id) => cb(id || null)),
-	onOpenAddAccount: (cb) => ipcRenderer.on("open-add-account", () => cb())
+	onOpenAddAccount: (cb) => ipcRenderer.on("open-add-account", () => cb()),
+	onShortcutHints: (cb) => ipcRenderer.on("shortcut-hints", (e, visible) => cb(!!visible))
 });

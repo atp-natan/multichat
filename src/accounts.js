@@ -286,6 +286,7 @@ const ACCOUNT_TEMPLATE = `
 	<div class="acct-avatar-wrap">
 		<div class="acct-avatar" style="background:__COLOR__">__ICON__</div>
 		<span class="acct-unread-badge" data-unread-badge="__ID__"></span>
+		<span class="acct-shortcut" aria-hidden="true">__SHORTCUT__</span>
 	</div>
 	<div class="acct-meta">
 		<div class="acct-name" title="__NAME__">__NAME__</div>
@@ -305,6 +306,12 @@ const ACCOUNT_TEMPLATE = `
 
 const fmtUnread = (n) => n > 99 ? '99+' : String(n);
 
+// Espelha src/account-shortcuts.js (labelForIndex): este renderer é sandboxed
+// e não tem `require`. A numeração é a posição na sidebar, então arrastar uma
+// conta renomeia o atalho dela e de todas as seguintes.
+const SHORTCUT_LIMIT = 9;
+const shortcutLabel = (index) => index < SHORTCUT_LIMIT ? String(index + 1) : null;
+
 const renderList = (accounts) => {
 	closeContextMenu();
 	if (drag) {
@@ -316,7 +323,7 @@ const renderList = (accounts) => {
 	$("#sb-empty").style.display = accounts.length === 0 ? "block" : "none";
 	list.style.display = accounts.length > 0 ? "block" : "none";
 
-	for (const acct of accounts) {
+	accounts.forEach((acct, index) => {
 		const unread = acct.unread || 0;
 		const isActive = acct.active || (acct.id === activeId);
 		const notifOn = !acct.notifications || acct.notifications.enabled !== false;
@@ -336,7 +343,8 @@ const renderList = (accounts) => {
 			.replace(/__LABEL__/g, esc(acct.loaded ? label : `${label} · hibernada`))
 			.replace(/__NOTIF__/g, notifOn ? '' : '<i class="bi bi-bell-slash notif-off" title="Notificações desligadas"></i>')
 			.replace(/__NOTIF_TITLE__/g, notifOn ? 'Desligar notificações' : 'Ligar notificações')
-			.replace(/__NOTIF_ICON__/g, notifOn ? 'bi-bell-fill' : 'bi-bell-slash-fill');
+			.replace(/__NOTIF_ICON__/g, notifOn ? 'bi-bell-fill' : 'bi-bell-slash-fill')
+			.replace(/__SHORTCUT__/g, shortcutLabel(index) || '');
 
 		paintAvatar(el.querySelector(".acct-avatar"), {
 			color,
@@ -406,7 +414,7 @@ const renderList = (accounts) => {
 		});
 
 		list.appendChild(el);
-	}
+	});
 };
 
 const SUSPEND_MINUTES_DEFAULT = 60;
@@ -530,6 +538,11 @@ const init = async () => {
 	});
 
 	window.electron.onSidebarState(setCollapsedUI);
+
+	if (window.electron.onShortcutHints)
+		window.electron.onShortcutHints((visible) => {
+			document.body.classList.toggle("shortcut-hints", !!visible);
+		});
 	window.electron.onUiTheme(setThemeUI);
 	if (window.electron.getUiTheme)
 		window.electron.getUiTheme().then(setThemeUI);

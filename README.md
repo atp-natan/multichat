@@ -107,6 +107,7 @@ opções). Os dois scripts checam a versão do Node antes de começar.
 - **Logo da conta**: na criação e na edição dá para enviar uma imagem que entra na moldura redonda da sidebar
 - **Equilíbrio entre conexão e memória**: contas são criadas sob demanda (lazy-load), continuam ativas em segundo plano e só são suspensas após 60 minutos sem uso, devolvendo memória sem perder o login; o prazo é configurável; dá para hibernar todas, inclusive a última visível
 - **Sidebar recolhível**: alterne entre a lista expandida (280px) e o modo compacto apenas com ícones (72px) — o estado é persistido entre inicializações
+- **Atalhos por conta**: `Ctrl`/`⌘` + `1`…`9` alterna direto para a conta naquela posição da sidebar; mantenha o modificador pressionado e os números aparecem sobre os avatares, para não ter que decorar a ordem
 - **Notificações desktop** com título da conta e clique para focar a conversa; pode ser ligado/desligado por conta
 - **Contador de não lidas** por conta, refletido na sidebar, na bandeja (tray) e, no Mac, no badge nativo do Dock (até 99+)
 - **Tray** (bandeja do sistema): minimizar/retornar para a bandeja em vez de fechar
@@ -162,7 +163,7 @@ MULTICHAT_SUSPEND_MINUTES=120 npm run start -- --start-in-tray --disable-gpu
 
 1. Ao abrir, a primeira conta padrão (WhatsApp) já está carregada.
 2. **Adicionar conta**: clique no **＋** no topo da sidebar, escolha o tipo de serviço (WhatsApp, Teams, Telegram, Discord, Slack ou URL personalizada) e dê um nome. Com a sidebar recolhida, o formulário abre ao lado, como o menu de contexto.
-3. **Alternar de conta**: clique no avatar na sidebar (ou `Ctrl+Tab` / `Ctrl+Shift+Tab`). A conta é carregada na primeira vez que for aberta.
+3. **Alternar de conta**: clique no avatar na sidebar, use `Ctrl`/`⌘` + `1`…`9` para ir direto à conta naquela posição (a numeração segue a ordem da sidebar, então arrastar uma conta renumera todas), ou `Ctrl+Tab` / `Ctrl+Shift+Tab` para percorrer na ordem. Mantenha `Ctrl`/`⌘` pressionado e os números aparecem sobre os avatares — emende no próximo número sem soltar a tecla. A conta é carregada na primeira vez que for aberta.
 4. **Recolher/expandir sidebar**: clique no botão de **painel** no topo da sidebar. No modo recolhido, o contador de não lidas aparece como badge sobre o avatar.
 5. **Editar/remover conta**: passe o mouse sobre o item e use os botões de lápis e lixeira (ou botão direito no ícone). Com a sidebar recolhida, editar e remover abrem ao lado, como o menu de contexto. O menu também hiberna a conta na hora. Em **Editar conta** dá para ligar/desligar a hibernação automática e o tempo de inatividade. A remoção apaga o login daquela conta.
 6. **Notificações**: o botão de sino por conta liga/desliga as notificações do sistema.
@@ -218,6 +219,7 @@ Os pacotes saem na pasta `dist/`.
 │   ├── constants.js          # nome do app, serviços suportados, eventos IPC
 │   ├── resource-policy.js    # política configurável de suspensão de contas
 │   ├── update-check.js       # comparação de versão e consulta de releases (sem Electron)
+│   ├── account-shortcuts.js  # numeração dos atalhos ⌘/Ctrl+1…9 e aviso do modificador (sem Electron)
 │   ├── assistant.html/js     # painel lateral do assistente contextual
 │   ├── assistant-preload.js  # ponte IPC isolada do painel
 │   ├── assistant-core.js     # validação e montagem do contexto

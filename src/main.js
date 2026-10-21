@@ -12,6 +12,7 @@ const { excerptNotes, isTrustedDownloadUrl, parseSha256Sums, expectedHash, sha25
 const { avatarFilePath, processAccountAvatar, pngDataUrl, isSafeAccountId } = require('./account-avatar');
 const { parseDeeplink, matchingAccounts, findDeeplinkInArgv, accountKind, DEEPLINK_SCHEMES } = require('./deeplink');
 const { totalUnread, dockBadgeLabel } = require('./unread-badge');
+const { acceleratorForIndex, holdModifierKey, shortcutHintState, menuLabel } = require('./account-shortcuts');
 
 // Página pública do projeto (GitHub Pages, publicada a partir de docs/).
 const SITE_URL = "https://maiconfontana.github.io/multichat/";
@@ -74,6 +75,7 @@ class MultiChatApp {
 		this.idleVisible = false;
 		this.deeplinkQueue = [];
 		this.deeplinkBusy = false;
+		this.shortcutHintsVisible = false;
 
 		this.bounds = this.store.get("bounds");
 		if (this.bounds == undefined) {
@@ -89,6 +91,7 @@ class MultiChatApp {
 		}
 
 		const quitItem = { label: "Encerrar", click: () => { this.isQuit = true; app.quit(); } };
+		this.quitMenuItem = quitItem;
 
 		const appMenu = [];
 		if (process.platform === "darwin") {
@@ -117,16 +120,11 @@ class MultiChatApp {
 		this.menuTemplate = [
 			...appMenu,
 			{
+				id: "menu-conta",
 				label: "Conta",
-				submenu: [
-					{ label: "Recarregar conta atual", accelerator: "CmdOrCtrl+R", click: () => { this.reloadCurrentView(); } },
-					{ label: "Próxima conta", accelerator: "CmdOrCtrl+Tab", click: () => { this.cycleAccount(1); } },
-					{ label: "Conta anterior", accelerator: "CmdOrCtrl+Shift+Tab", click: () => { this.cycleAccount(-1); } },
-					{ type: "separator" },
-					{ label: "Ferramentas de desenvolvedor", accelerator: "CmdOrCtrl+Shift+I", click: () => { this.openDevTools(); } },
-					{ type: "separator" },
-					quitItem
-				]
+				// Preenchido por accountMenuItems() em refreshApplicationMenu:
+				// o número de cada conta depende da ordem atual da sidebar.
+				submenu: []
 			},
 			// macOS roteia Cmd+C/V/X/A/Z pelo menu da aplicação. Sem estes
 			// itens, o Menu.setApplicationMenu abaixo substitui o menu padrão
@@ -235,8 +233,7 @@ class MultiChatApp {
 		this.currentVersion = app.getVersion() || Constants.version;
 		this.versionMenuItem.label =
 			`Versão ${this.currentVersion} (Electron@${process.versions.electron})`;
-		this.menu = Menu.buildFromTemplate(this.menuTemplate);
-		Menu.setApplicationMenu(this.menu);
+		this.refreshApplicationMenu();
 
 		if (this.trayEnabled)
 			this.createTray();
@@ -425,6 +422,7 @@ class MultiChatApp {
 			this.store.set("accounts", this.accounts);
 			// A view é criada por setCurrentView (lazy), não aqui.
 			this.sidebarView.webContents.send(Constants.event.reloadAccounts);
+			this.refreshApplicationMenu(); // nova conta = nova numeração
 			this.setCurrentView(account.id);
 		});
 
@@ -447,6 +445,7 @@ class MultiChatApp {
 					this.instances[data.id].notifications = data.notifications;
 			}
 			this.sidebarView.webContents.send(Constants.event.reloadAccounts);
+			this.refreshApplicationMenu(); // o rótulo do menu mostra o nome
 			this.scheduleSuspend(data.id);
 		});
 
@@ -488,6 +487,7 @@ class MultiChatApp {
 			}
 
 			this.sidebarView.webContents.send(Constants.event.reloadAccounts);
+			this.refreshApplicationMenu(); // remover conta renumera as seguintes
 			this.updateTrayBadgeCounter();
 		});
 
@@ -515,6 +515,7 @@ class MultiChatApp {
 			}
 			this.accounts = next;
 			this.store.set("accounts", this.accounts);
+			this.refreshApplicationMenu(); // arrastar conta troca o ⌘N de cada uma
 		});
 
 		ipcMain.on(Constants.event.toggleNotifications, (event, data) => {
@@ -766,6 +767,29 @@ class MultiChatApp {
 		this.assistantView.setBounds({ x: b.width - width, y: 0, width, height: b.height });
 	}
 
+	// ── Aviso de atalhos (⌘/Ctrl mantido) ──
+	//
+	// O foco do teclado fica na view da conta, não na sidebar, então o aviso
+	// precisa nascer aqui e viajar por IPC. O handler é só observador: NUNCA
+	// chama event.preventDefault(), porque isso também mataria os
+	// aceleradores do menu (Cmd+C/V inclusive) — ver issue 19279 do Electron.
+	attachShortcutHints(webContents) {
+		if (!webContents || webContents.isDestroyed()) return;
+		webContents.on("before-input-event", (event, input) => {
+			const state = shortcutHintState(input);
+			if (state === null) return; // evento não fala do modificador
+			this.setShortcutHints(state);
+		});
+	}
+
+	setShortcutHints(visible) {
+		const next = !!visible;
+		if (this.shortcutHintsVisible === next) return;
+		this.shortcutHintsVisible = next;
+		if (this.sidebarView && !this.sidebarView.webContents.isDestroyed())
+			this.sidebarView.webContents.send(Constants.event.shortcutHints, next);
+	}
+
 	trayEnabledMenuItem() {
 		return {
 			id: "tray-enabled",
@@ -831,8 +855,42 @@ class MultiChatApp {
 		}
 	}
 
+	// Submenu "Conta": recriado a cada mudança na lista porque o número de
+	// cada atalho é a posição da conta na sidebar. Se fosse montado uma vez
+	// só, arrastar uma conta deixaria o ⌘3 apontando para a conta errada.
+	accountMenuItems() {
+		const items = [
+			{ label: "Recarregar conta atual", accelerator: "CmdOrCtrl+R", click: () => { this.reloadCurrentView(); } },
+			{ label: "Próxima conta", accelerator: "CmdOrCtrl+Tab", click: () => { this.cycleAccount(1); } },
+			{ label: "Conta anterior", accelerator: "CmdOrCtrl+Shift+Tab", click: () => { this.cycleAccount(-1); } }
+		];
+
+		if (this.accounts.length > 0) {
+			items.push({ type: "separator" });
+			this.accounts.forEach((account, index) => {
+				const accelerator = acceleratorForIndex(index);
+				if (!accelerator) return; // a partir da 10ª: só ⌘Tab
+				items.push({
+					label: menuLabel(index, account.name),
+					accelerator,
+					click: () => { this.setCurrentView(account.id); }
+				});
+			});
+		}
+
+		items.push(
+			{ type: "separator" },
+			{ label: "Ferramentas de desenvolvedor", accelerator: "CmdOrCtrl+Shift+I", click: () => { this.openDevTools(); } },
+			{ type: "separator" },
+			this.quitMenuItem
+		);
+		return items;
+	}
+
 	refreshApplicationMenu() {
 		this.syncMenuDynamicItems(this.menuTemplate);
+		const accountMenu = this.menuTemplate.find(item => item.id === "menu-conta");
+		if (accountMenu) accountMenu.submenu = this.accountMenuItems();
 		this.menu = Menu.buildFromTemplate(this.menuTemplate);
 		Menu.setApplicationMenu(this.menu);
 	}
@@ -942,6 +1000,11 @@ class MultiChatApp {
 
 		this.applyUiTheme();
 
+		// Cmd+Tab / clique em outro app: o keyUp do modificador vai para o
+		// outro app e nunca chega aqui — o aviso ficaria travado na tela.
+		this.window.on("blur", () => { this.setShortcutHints(false); });
+		this.window.on("focus", () => { this.setShortcutHints(false); });
+
 		this.window.on("move", () => { this.scheduleStoreBounds(); });
 		this.window.on("resize", () => { this.scheduleStoreBounds(); });
 		this.window.on("close", (e) => {
@@ -975,6 +1038,10 @@ class MultiChatApp {
 		this.sidebarView.webContents.on("did-finish-load", () => {
 			this.sidebarView.webContents.send(Constants.event.initResources, { constants: ConstantsForIPC() });
 		});
+
+		// A sidebar também pode ter o foco (clique no avatar, formulário aberto):
+		// sem isto o aviso não acenderia enquanto o usuário está nela.
+		this.attachShortcutHints(this.sidebarView.webContents);
 
 		// Sidebar is always first (z-order: bottom)
 		this.window.contentView.addChildView(this.sidebarView);
@@ -1147,6 +1214,8 @@ class MultiChatApp {
 			this.shareCurrent = { id, callback };
 			this.openScreenSharePicker();
 		});
+
+		this.attachShortcutHints(view.webContents);
 
 		view._id   = id;
 		view._name = name;
