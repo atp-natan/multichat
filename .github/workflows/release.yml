@@ -148,6 +148,15 @@ jobs:
           echo "Crie e empurre a tag: git tag v1.6.0 && git push origin v1.6.0"
           exit 1
 
+      # A tag é o último portão: sem entrada em src/whats-new.json, o popup de
+      # novidades daquela versão simplesmente não apareceria para ninguém.
+      # Checkout explícito: os artefatos dos builds vêm por upload/download, e
+      # este job não tinha cópia do código até aqui.
+      - uses: actions/checkout@v4
+
+      - name: Conferir novidades da versão da tag
+        run: npm run whats-new:check
+
       - name: Baixar todos os artefatos
         uses: actions/download-artifact@v4
         with:

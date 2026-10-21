@@ -1,0 +1,69 @@
+{
+	"schema": 1,
+	"releases": [
+		{
+			"version": "1.8.0",
+			"date": "2026-10-21",
+			"title": "Novidades da 1.8.0",
+			"highlights": [
+				{
+					"id": "atalhos-entre-contas",
+					"icon": "bi-command",
+					"title": "Troque de conta sem largar o teclado",
+					"body": "Cada conta da barra lateral tem um número. Segure o modificador para ver os números sobre os avatares e aperte o dígito da conta que você quer.",
+					"bullets": [
+						"⌘ 1…9 no macOS, Ctrl 1…9 no Windows e Linux",
+						"Funciona de qualquer conversa, sem clicar na barra lateral",
+						"A ordem dos números é a ordem da barra lateral"
+					],
+					"keys": ["1", "2", "3", "9"],
+					"demo": "modifier"
+				}
+			]
+		},
+		{
+			"version": "1.7.1",
+			"date": "2026-09-28",
+			"title": "Novidades da 1.7.1",
+			"highlights": [
+				{
+					"id": "deeplinks",
+					"icon": "bi-link-45deg",
+					"title": "Links de WhatsApp abrem na conta certa",
+					"body": "Clique num link wa.me no navegador ou em outro app: o MultiChat escolhe a conta dona daquele número e abre a conversa direto, sem passar pela tela de escolha.",
+					"keys": []
+				},
+				{
+					"id": "badge-dock",
+					"icon": "bi-app-indicator",
+					"title": "Não lidas no Dock",
+					"body": "O total de mensagens não lidas das contas aparece no ícone do app e no ícone da barra de menus, com o mesmo contador da bandeja."
+				}
+			]
+		},
+		{
+			"version": "1.7.0",
+			"date": "2026-09-12",
+			"title": "Novidades da 1.7.0",
+			"highlights": [
+				{
+					"id": "hibernacao",
+					"icon": "bi-moon-stars",
+					"title": "Contas que dormem quando você não está nelas",
+					"body": "Conta sem foco sai da memória depois de um tempo (60 minutos por padrão) e volta na hora que você clica. Menos RAM, menos bateria e nenhuma notificação perdida.",
+					"bullets": [
+						"O tempo é ajustável por conta, em Editar conta",
+						"Hibernar todas descarrega tudo de uma vez",
+						"MULTICHAT_SUSPEND_MINUTES=0 desliga a hibernação"
+					]
+				},
+				{
+					"id": "logo-por-conta",
+					"icon": "bi-layers",
+					"title": "Um logo para cada conta",
+					"body": "Contas do mesmo serviço ficam distinguíveis: escolha a imagem na criação ou depois, e o app recorta e guarda um avatar de 128 pixels em disco."
+				}
+			]
+		}
+	]
+}

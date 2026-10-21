@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Novidades</title>
+  <link href="vendor/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --wn-bg: #ffffff;
+      --wn-surface: #f5f6f7;
+      --wn-text: #0f1419;
+      --wn-muted: #5c6b73;
+      --wn-border: #e3e6e8;
+      --wn-accent: #00a884;
+      --wn-accent-soft: rgba(0, 168, 132, .12);
+      --wn-key: #ffffff;
+      --wn-key-border: #d3d8db;
+      --wn-key-shadow: rgba(15, 20, 25, .18);
+    }
+    body.theme-dark {
+      color-scheme: dark;
+      --wn-bg: #161717;
+      --wn-surface: #1d1f1f;
+      --wn-text: #f2f2f2;
+      --wn-muted: #a3a3a3;
+      --wn-border: #3a3a3a;
+      --wn-accent: #00c4a0;
+      --wn-accent-soft: rgba(0, 196, 160, .16);
+      --wn-key: #2b2b2b;
+      --wn-key-border: #4a4a4a;
+      --wn-key-shadow: rgba(0, 0, 0, .55);
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: transparent;
+    }
+    body {
+      display: flex;
+      color: var(--wn-text);
+      font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+    .card {
+      position: relative;
+      flex: 1;
+      margin: 10px;
+      display: flex;
+      flex-direction: column;
+      background: var(--wn-bg);
+      border: 1px solid var(--wn-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
+    }
+    header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 18px 20px 14px 24px;
+      border-bottom: 1px solid var(--wn-border);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--wn-accent);
+    }
+    .eyebrow .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--wn-accent);
+    }
+    header h1 {
+      margin: 6px 0 0;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+    }
+    header .close {
+      margin-left: auto;
+      flex: 0 0 auto;
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      border: 0; border-radius: 50%;
+      background: transparent;
+      color: var(--wn-muted);
+      font-size: 15px;
+      cursor: pointer;
+    }
+    header .close:hover { background: var(--wn-surface); color: var(--wn-text); }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      min-height: 0;
+    }
+    .stage {
+      flex: 1 1 58%;
+      min-width: 0;
+      padding: 18px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 11px;
+      overflow-y: auto;
+    }
+    .icon-badge {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--wn-accent-soft);
+      color: var(--wn-accent);
+      font-size: 21px;
+    }
+    .slide-title {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: -.015em;
+    }
+    .slide-body {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--wn-muted);
+    }
+    ul.bullets {
+      margin: 2px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 7px;
+    }
+    ul.bullets li {
+      position: relative;
+      padding-left: 20px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--wn-muted);
+    }
+    ul.bullets li::before {
+      content: "\F26E";
+      font-family: bootstrap-icons;
+      position: absolute;
+      left: 0; top: 1px;
+      font-size: 12px;
+      color: var(--wn-accent);
+    }
+
+    .demo[hidden] { display: none; }
+    .demo {
+      position: relative;
+      flex: 0 0 40%;
+      min-height: 0;
+      align-self: stretch;
+      margin: 10px 20px 10px 0;
+      border-radius: 14px;
+      background: var(--wn-surface);
+      border: 1px solid var(--wn-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 20px 12px;
+      text-align: center;
+      overflow: auto;
+    }
+    .demo-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 4px;
+    }
+    .mini-avatar {
+      position: relative;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--chip, #00a884);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+    }
+    .mini-avatar::after {
+      content: attr(data-num);
+      position: absolute;
+      top: -4px; left: -4px;
+      min-width: 14px; height: 14px;
+      padding: 0 3px;
+      border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--wn-accent);
+      color: #06211c;
+      font-size: 9px;
+      font-weight: 800;
+      box-shadow: 0 0 0 2px var(--wn-surface);
+      opacity: 0;
+      transform: scale(.6);
+      transition: opacity .14s ease, transform .14s ease;
+    }
+    body.modifier-down .mini-avatar::after { opacity: 1; transform: scale(1); }
+
+    .keycaps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .keycap {
+      min-width: 34px;
+      height: 34px;
+      padding: 0 8px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+      background: var(--wn-key);
+      border: 1px solid var(--wn-key-border);
+      box-shadow: 0 2px 0 var(--wn-key-border), 0 3px 8px var(--wn-key-shadow);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--wn-text);
+      transition: transform .09s ease, box-shadow .09s ease, background .12s ease, color .12s ease;
+    }
+    .keycap.modifier { min-width: 46px; }
+    .keycap.plus {
+      min-width: 0;
+      width: 10px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      color: var(--wn-muted);
+      font-weight: 400;
+    }
+    body.modifier-down .keycap.modifier {
+      background: var(--wn-accent);
+      border-color: var(--wn-accent);
+      color: #06211c;
+      transform: translateY(1px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, .18);
+    }
+    .demo-hint {
+      margin: 0;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: var(--wn-muted);
+      max-width: 205px;
+    }
+    .demo-hint .hint-key {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--wn-key-border);
+      background: var(--wn-key);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--wn-text);
+    }
+
+    footer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px 14px 24px;
+      border-top: 1px solid var(--wn-border);
+    }
+    .dots { display: flex; align-items: center; gap: 6px; }
+    .dot-nav {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      border: 0;
+      padding: 0;
+      background: var(--wn-border);
+      cursor: pointer;
+      transition: width .15s ease, background .15s ease;
+    }
+    .dot-nav.active { width: 18px; border-radius: 4px; background: var(--wn-accent); }
+    .version-tag {
+      font-size: 11px;
+      color: var(--wn-muted);
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--wn-border);
+      white-space: nowrap;
+    }
+    .actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    button.btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 9px 15px;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button.btn.ghost { background: transparent; color: var(--wn-muted); }
+    button.btn.ghost:hover { background: var(--wn-surface); color: var(--wn-text); }
+    button.btn.primary { background: var(--wn-accent); color: #06211c; }
+    body.theme-dark button.btn.primary { color: #06211c; }
+    button.btn.primary:hover { filter: brightness(1.06); }
+    button.btn:focus-visible { outline: 2px solid var(--wn-accent); outline-offset: 2px; }
+    button.btn:disabled { opacity: .45; cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <header>
+      <div>
+        <span class="eyebrow"><span class="dot"></span><span id="eyebrow">Novidade</span></span>
+        <h1 id="release-title">Novidades</h1>
+      </div>
+      <button class="close" id="close" title="Fechar (Esc)" aria-label="Fechar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    <main>
+      <section class="stage">
+        <div class="icon-badge"><i id="icon" class="bi bi-stars"></i></div>
+        <h2 class="slide-title" id="title">—</h2>
+        <p class="slide-body" id="body">—</p>
+        <ul class="bullets" id="bullets"></ul>
+      </section>
+
+      <aside class="demo" id="demo" hidden>
+        <div class="demo-sidebar" aria-hidden="true">
+          <div class="mini-avatar" data-num="1" style="--chip:#25d366">W</div>
+          <div class="mini-avatar" data-num="2" style="--chip:#2aabee">T</div>
+          <div class="mini-avatar" data-num="3" style="--chip:#5059c9">M</div>
+        </div>
+        <div class="keycaps" id="keycaps"></div>
+        <p class="demo-hint" id="demo-hint"></p>
+      </aside>
+    </main>
+
+    <footer>
+      <div class="dots" id="dots"></div>
+      <span class="version-tag" id="version-tag"></span>
+      <div class="actions">
+        <button class="btn ghost" id="back">Voltar</button>
+        <button class="btn primary" id="next">Próximo</button>
+      </div>
+    </footer>
+  </div>
+  <script src="whats-new.js"></script>
+</body>
+</html>
