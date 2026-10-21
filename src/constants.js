@@ -113,6 +113,7 @@ Constants.event.uiTheme                 = "ui-theme";
 Constants.event.idleState               = "idle-state";
 Constants.event.idleAddAccount          = "idle-add-account";
 Constants.event.openAddAccount          = "open-add-account";
+Constants.event.shortcutHints           = "shortcut-hints";
 
 Constants.event.getShareSources   = "get-share-sources";
 Constants.event.setShareSelected  = "set-share-selected";

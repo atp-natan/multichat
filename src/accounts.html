@@ -157,6 +157,31 @@
       border: 2px solid var(--ui-bg);
     }
 
+    /* Aviso de atalhos: aparece enquanto o modificador (⌘/Ctrl) está
+       pressionado. Canto inferior do avatar — o superior direito é do
+       contador de não lidas. */
+    .acct-shortcut {
+      position: absolute; right: -3px; bottom: -3px;
+      min-width: 18px; height: 18px; padding: 0 4px;
+      border-radius: 6px; box-sizing: border-box;
+      background: var(--ui-elevated); color: var(--ui-text);
+      font-size: 11px; font-weight: 700; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--ui-bg);
+      opacity: 0; transform: scale(.8);
+      transition: opacity .12s ease, transform .12s ease;
+      pointer-events: none; z-index: 2;
+    }
+    .acct-item.active .acct-shortcut { border-color: var(--ui-elevated); background: var(--ui-surface); }
+    .acct-item:hover .acct-shortcut { border-color: var(--ui-surface); }
+    body.shortcut-hints .acct-shortcut { opacity: 1; transform: scale(1); }
+    /* No modo recolhido a sidebar tem 72px e não sobra espaço ao lado do
+       avatar (o -3px da direita estouraria e seria cortado). O número vai
+       para o canto superior esquerdo, espelhando o contador de não lidas que
+       já ocupa o direito. Esconder era pior: a sidebar recolhida é o padrão
+       do app, então o aviso nunca apareceria. */
+    body.collapsed .acct-shortcut { top: -4px; bottom: auto; left: -4px; right: auto; }
+
     .acct-actions { display: none; gap: 1px; }
     .acct-item:hover .acct-actions { display: flex; }
     .acct-item:hover .acct-unread { display: none !important; }
