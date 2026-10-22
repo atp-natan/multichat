@@ -13,6 +13,7 @@ const { avatarFilePath, processAccountAvatar, pngDataUrl, isSafeAccountId } = re
 const { parseDeeplink, matchingAccounts, findDeeplinkInArgv, accountKind, DEEPLINK_SCHEMES } = require('./deeplink');
 const { totalUnread, dockBadgeLabel } = require('./unread-badge');
 const { acceleratorForIndex, holdModifierKey, shortcutHintState, menuLabel } = require('./account-shortcuts');
+const { selectReleases, flattenSlides, normalizeDocument } = require('./release-notes');
 
 // Página pública do projeto (GitHub Pages, publicada a partir de docs/).
 const SITE_URL = "https://maiconfontana.github.io/multichat/";
@@ -44,6 +45,11 @@ const MAX_ACTIVE_NOTIFICATIONS = 100;
 
 class MultiChatApp {
 	constructor() {
+		// Detectado ANTES de instanciar o Store: o electron-store cria o
+		// config.json na construção, e a partir daí não dá mais para saber se o
+		// usuário já usava o app. Usado pelo popup de novidades para não
+		// anunciar "novidades" numa instalação limpa.
+		this.freshInstall = !fs.existsSync(path.join(app.getPath("userData"), "config.json"));
 		this.store      = new Store();
 		this.baseIcon   = path.join(__dirname, "../assets/icon.png");
 		this.trayIcon   = path.join(__dirname, "../assets/icon-32.png");
@@ -73,6 +79,9 @@ class MultiChatApp {
 		this.assistantWidth = 400;
 		this.idleView = null;
 		this.idleVisible = false;
+		this.whatsNewWindow = null;
+		this.whatsNewSlides = null;
+		this.whatsNewDoc = undefined;
 		this.deeplinkQueue = [];
 		this.deeplinkBusy = false;
 		this.shortcutHintsVisible = false;
@@ -176,6 +185,7 @@ class MultiChatApp {
 				submenu: [
 					this.versionMenuItem,
 					this.updateMenuItem,
+					{ label: "Novidades desta versão", click: () => { this.openWhatsNew().catch((err) => console.warn(`MultiChat: popup de novidades falhou: ${err.message}`)); } },
 					{ type: "separator" },
 					{ label: "Página do projeto", click: () => { shell.openExternal(SITE_URL); } },
 					{ label: "Página de downloads", click: () => { shell.openExternal(RELEASES_URL); } },
@@ -217,6 +227,7 @@ class MultiChatApp {
 		console.log(`MultiChat: Hibernação padrão (contas sem ajuste): ${formatSuspendPolicy(getSuspendAfterMs())}`);
 
 		this.registerEvents();
+		this.registerWhatsNewEvents();
 		this.createWindow();
 		this.createSidebarView();
 
@@ -248,6 +259,9 @@ class MultiChatApp {
 
 		// Checagem silenciosa de versão: só avisa se houver release mais nova.
 		this.scheduleUpdateCheck();
+		// Depois da primeira pintura: o popup de novidades não pode competir
+		// com o carregamento da conta ativa.
+		this.scheduleWhatsNew();
 		this.flushPendingDeeplinks();
 	}
 
@@ -1714,6 +1728,167 @@ class MultiChatApp {
 			this.checkForUpdates().catch((err) => console.warn(`MultiChat: Verificação de atualização falhou: ${err.message}`));
 		}, delayMs);
 		if (timer.unref) timer.unref();
+	}
+
+	// ── Novidades da versão ──
+	// Conteúdo curado em src/whats-new.json (ver release-notes.js para as regras
+	// de quais versões aparecem). O popup é uma BrowserWindow própria, não um
+	// diálogo nativo: changelog com atalhos, bullets e keycaps não cabe em
+	// dialog.showMessageBox.
+	//
+	// Para testar sem instalar: `npm start -- --whats-new-preview` abre o popup
+	// com todo o histórico do JSON e não grava nada no store. Ver README.
+	readWhatsNewDocument() {
+		if (this.whatsNewDoc !== undefined) return this.whatsNewDoc;
+		try {
+			const raw = fs.readFileSync(path.join(__dirname, "whats-new.json"), "utf8");
+			this.whatsNewDoc = JSON.parse(raw);
+		} catch (err) {
+			// JSON quebrado não pode impedir o app de abrir.
+			console.warn(`MultiChat: whats-new.json ilegível: ${err.message}`);
+			this.whatsNewDoc = null;
+		}
+		return this.whatsNewDoc;
+	}
+
+	// Telas que o usuário deve ver agora. Vazio = nada a mostrar.
+	whatsNewReleases({ ignoreSeen = false } = {}) {
+		const document = this.readWhatsNewDocument();
+		if (!document) return [];
+		const currentVersion = this.currentVersion || app.getVersion() || Constants.version;
+		const lastSeenVersion = this.store.get("whatsNewSeenVersion") || null;
+		// Popup já visto nesta versão: nada a fazer (o item de menu passa
+		// ignoreSeen = true para reler mesmo assim).
+		if (!ignoreSeen && lastSeenVersion === currentVersion) return [];
+		return selectReleases(document, {
+			currentVersion,
+			// ignoreSeen força "só a versão atual", como numa primeira execução
+			// desta feature — sem puxar o histórico de versões anteriores.
+			lastSeenVersion: ignoreSeen ? null : lastSeenVersion,
+			isFreshInstall: false
+		});
+	}
+
+	scheduleWhatsNew(delayMs = 2400) {
+		const currentVersion = this.currentVersion || app.getVersion() || Constants.version;
+
+		// `npm start -- --whats-new-preview`: mostra o histórico inteiro do JSON
+		// sem tocar no store. É o caminho para revisar o conteúdo antes de
+		// publicar, sem precisar instalar uma versão nova.
+		if (process.argv.includes("--whats-new-preview")) {
+			const document = this.readWhatsNewDocument();
+			// normalizeDocument já ordena do mais novo para o mais velho; a
+			// leitura do popup é cronológica, então inverte.
+			const releases = document ? normalizeDocument(document).releases.slice().reverse() : [];
+			const timer = setTimeout(() => {
+				this.openWhatsNew(releases).catch((err) => console.warn(`MultiChat: preview falhou: ${err.message}`));
+			}, delayMs);
+			if (timer.unref) timer.unref();
+			return;
+		}
+
+		// `npm start -- --whats-new-reset`: simula "atualizei agora" — esquece a
+		// versão vista e ignora a detecção de instalação nova.
+		const reset = process.argv.includes("--whats-new-reset");
+		if (reset) this.store.delete("whatsNewSeenVersion");
+
+		const lastSeenVersion = reset ? null : this.store.get("whatsNewSeenVersion") || null;
+		if (lastSeenVersion === currentVersion) return;
+
+		// Instalação nova não tem novidade para contar: o app acabou de ser
+		// instalado, não houve atualização. Marca a versão para que a PRÓXIMA
+		// atualização seja anunciada.
+		if (this.freshInstall && !reset) {
+			this.markWhatsNewSeen();
+			return;
+		}
+
+		// `lastSeenVersion` nulo aqui significa "atualizou vindo de uma versão
+		// que ainda não tinha este popup": mostra só a versão atual, sem
+		// despejar o histórico de versões antigas.
+		const releases = this.whatsNewReleases();
+		if (releases.length === 0) return;
+
+		const timer = setTimeout(() => {
+			if (!this.window || this.window.isDestroyed()) return;
+			// Janela escondida na bandeja: espera a próxima abertura em vez de
+			// roubar o foco do nada.
+			if (!this.window.isVisible() || !this.window.isFocused()) return;
+			this.openWhatsNew(releases).catch((err) => console.warn(`MultiChat: popup de novidades falhou: ${err.message}`));
+		}, delayMs);
+		if (timer.unref) timer.unref();
+	}
+
+	markWhatsNewSeen() {
+		this.store.set("whatsNewSeenVersion", this.currentVersion || app.getVersion() || Constants.version);
+	}
+
+	async openWhatsNew(releases) {
+		const slides = flattenSlides(releases || this.whatsNewReleases({ ignoreSeen: true }));
+		if (slides.length === 0) return null;
+		if (this.whatsNewWindow && !this.whatsNewWindow.isDestroyed()) {
+			this.whatsNewWindow.show();
+			this.whatsNewWindow.focus();
+			return this.whatsNewWindow;
+		}
+
+		this.whatsNewSlides = slides;
+		const win = new BrowserWindow({
+			width: 780,
+			height: 520,
+			minWidth: 620,
+			minHeight: 420,
+			parent: this.window && !this.window.isDestroyed() ? this.window : undefined,
+			// Não-modal de propósito: popup de novidades é leitura, não bloqueio.
+			// Como é filho da janela principal, ainda fica sempre à frente dela.
+			modal: false,
+			show: false,
+			resizable: true,
+			maximizable: false,
+			fullscreenable: false,
+			autoHideMenuBar: true,
+			title: "Novidades do MultiChat",
+			backgroundColor: this.chromeBackground(),
+			icon: this.baseIcon,
+			webPreferences: {
+				preload: path.join(__dirname, "whats-new-preload.js"),
+				contextIsolation: true,
+				nodeIntegration: false,
+				sandbox: true
+			}
+		});
+		this.whatsNewWindow = win;
+		win.setMenu(null);
+		win.loadFile(path.join(__dirname, "whats-new.html"));
+
+		win.webContents.on("did-finish-load", () => {
+			if (win.isDestroyed()) return;
+			win.webContents.send(Constants.event.uiTheme, !!this.darkMode);
+		});
+		win.once("ready-to-show", () => {
+			if (win.isDestroyed()) return;
+			win.show();
+			win.focus();
+		});
+		// Fechar pela janela (X, Esc, "Começar a usar") conta como visto — do
+		// contrário o popup voltaria a cada abertura do app.
+		win.on("closed", () => {
+			this.markWhatsNewSeen();
+			this.whatsNewWindow = null;
+			this.whatsNewSlides = null;
+		});
+		return win;
+	}
+
+	registerWhatsNewEvents() {
+		ipcMain.handle("whats-new:get-state", () => ({
+			slides: this.whatsNewSlides || [],
+			dark: !!this.darkMode
+		}));
+		ipcMain.on("whats-new:dismiss", () => {
+			if (this.whatsNewWindow && !this.whatsNewWindow.isDestroyed()) this.whatsNewWindow.close();
+			else this.markWhatsNewSeen();
+		});
 	}
 
 	// ── Compartilhamento de tela ──

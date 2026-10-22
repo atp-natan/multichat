@@ -150,6 +150,8 @@ npm run start
 | `--start-in-tray` | Inicia direto na bandeja, sem mostrar a janela |
 | `--disable-gpu` | Desabilita aceleração de hardware (útil em terminais/remotos) |
 | `--spell-lang=xx-XX` | Idioma adicional da correção ortográfica (ex.: `--spell-lang=es-ES`) |
+| `--whats-new-preview` | Abre o popup de novidades com todo o histórico de `src/whats-new.json` e não grava nada no estado do app (para revisar conteúdo antes de publicar) |
+| `--whats-new-reset` | Simula ter acabado de atualizar: esquece a versão vista e abre o popup no fluxo normal |
 
 A hibernação (descarregar da RAM uma conta fora de foco) é configurável por conta em **Editar conta**. O padrão é 60 minutos; desligar o interruptor mantém aquela conta sempre carregada. No menu de contexto (botão direito) dá para **Hibernar agora**, na hora — se for a conta visível, o MultiChat troca para outra antes de descarregar. A variável de ambiente `MULTICHAT_SUSPEND_MINUTES` ainda vale como padrão das contas que nunca foram ajustadas (`0` = nunca hibernar, máximo `1440`). Quanto maior o prazo e o número de contas abertas, maior o uso de RAM.
 
@@ -176,6 +178,37 @@ MULTICHAT_SUSPEND_MINUTES=120 npm run start -- --start-in-tray --disable-gpu
 npm test      # testes unitários, inclusive adaptador WhatsApp com DOM fake
 npm run check # valida sintaxe dos processos principal, preloads e scripts
 ```
+
+### Popup de novidades da versão
+
+Toda versão publicada ganha um popup "Novidades" na primeira abertura depois de atualizar. O
+conteúdo é curado à mão em `src/whats-new.json` (não vai para a tela o corpo cru da release ou os
+commits): título curto, texto explicativo, até 3 bullets e, opcionalmente, uma demonstração de
+atalho com `keys` + `demo: "modifier"`.
+
+Para ver como ficou **antes** de commitar:
+
+```bash
+npm run whats-new:preview   # ou: npm start -- --whats-new-preview
+```
+
+Isso abre o popup com o histórico inteiro do JSON e não mexe no que já foi marcado como visto.
+Para reproduzir o fluxo real (como quem acabou de atualizar):
+
+```bash
+npm start -- --whats-new-reset
+```
+
+Ao preparar uma release nova:
+
+```bash
+npm run whats-new -- 1.8.0      # rascunho a partir dos commits (feat/fix/perf)
+npm run whats-new -- --check    # falha se a versão do package.json não tiver entrada
+```
+
+O rascunho nasce com `"draft": true` e títulos técnicos — reescreva em linguagem de produto e
+remova o campo. `npm run whats-new:check` roda no CI e no job de release: é o que impede taguear
+uma versão sem popup (ou com changelog técnico vazando para o usuário final).
 
 ## Build (distributíveis)
 

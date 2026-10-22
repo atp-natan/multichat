@@ -41,3 +41,9 @@ jobs:
 
       - name: Rodar testes unitários
         run: npm test
+
+      # Popup de novidades: impede taguear uma versão sem entrada no
+      # src/whats-new.json (ou com o rascunho de commits ainda marcado como
+      # draft). É o mesmo papel do teste que trava a divergência de versão.
+      - name: Conferir novidades da versão
+        run: npm run whats-new:check
