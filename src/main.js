@@ -420,6 +420,10 @@ class MultiChatApp {
 			}));
 		});
 
+		ipcMain.on(Constants.event.refreshAccount, (event, id) => {
+			this.reloadAccountView(id);
+		});
+
 		ipcMain.on(Constants.event.addAccount, (event, data) => {
 			if (!isSafeAccountId(data.id)) return;
 			const svc = Constants.services[data.type] || Constants.services.whatsapp;
@@ -564,11 +568,15 @@ class MultiChatApp {
 		});
 
 		// ── Compartilhamento de tela (modal em janela própria) ──
-		ipcMain.handle(Constants.event.getShareSources, async () => {
+		ipcMain.handle(Constants.event.getShareSources, async (event) => {
+			if (!this.shareCurrent || event.sender !== this.sharePicker?.webContents) return [];
+			const current = this.shareCurrent;
 			const sources = await desktopCapturer.getSources({
 				types: ["screen", "window"],
 				thumbnailSize: { width: 320, height: 180 }
 			});
+			if (this.shareCurrent !== current || event.sender !== this.sharePicker?.webContents) return [];
+			current.sources = sources;
 			return sources.map(s => ({
 				id: s.id,
 				name: s.name,
@@ -577,14 +585,16 @@ class MultiChatApp {
 		});
 
 		ipcMain.on(Constants.event.setShareSelected, (event, shareId) => {
-			if (!this.shareCurrent) return;
-			try { this.shareCurrent.callback({ video: { id: shareId } }); } catch (e) {}
+			if (!this.shareCurrent || event.sender !== this.sharePicker?.webContents) return;
+			const source = this.shareCurrent.sources?.find(s => s.id === shareId);
+			try { this.shareCurrent.callback(source ? { video: { id: source.id, name: source.name } } : null); }
+			catch (e) { console.error('Falha ao iniciar compartilhamento de tela:', e); }
 			this.shareCurrent = null;
 			this.closeSharePicker();
 		});
 
-		ipcMain.on(Constants.event.setShareCancelled, () => {
-			if (!this.shareCurrent) return;
+		ipcMain.on(Constants.event.setShareCancelled, (event) => {
+			if (!this.shareCurrent || event.sender !== this.sharePicker?.webContents) return;
 			try { this.shareCurrent.callback(null); } catch (e) {}
 			this.shareCurrent = null;
 			this.closeSharePicker();
@@ -1225,6 +1235,10 @@ class MultiChatApp {
 			view.webContents.session.setSpellCheckerLanguages(this.spellLangs);
 
 		view.webContents.session.setDisplayMediaRequestHandler((request, callback) => {
+			if (this.shareCurrent) {
+				callback(null);
+				return;
+			}
 			this.shareCurrent = { id, callback };
 			this.openScreenSharePicker();
 		});
@@ -1525,8 +1539,12 @@ class MultiChatApp {
 	}
 
 	reloadCurrentView() {
-		if (!this.activeId) return;
-		const inst = this.instances[this.activeId];
+		this.reloadAccountView(this.activeId);
+	}
+
+	reloadAccountView(id) {
+		if (!id) return;
+		const inst = this.instances[id];
 		if (!inst || !inst.view) return;
 		inst.view.webContents.reload();
 		// O evento de reinicialização do preload é enviado pelo did-finish-load,

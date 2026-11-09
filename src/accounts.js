@@ -255,6 +255,9 @@ const showContextMenu = async (event, itemEl, acct) => {
 	contextMenuAcct = acct;
 	modalAnchorRect = itemEl.getBoundingClientRect();
 	const menu = $("#acct-context-menu");
+	const refreshBtn = menu.querySelector('[data-action="refresh"]');
+	refreshBtn.disabled = !acct.loaded;
+	refreshBtn.title = acct.loaded ? "Atualiza a página desta conta" : "Abra a conta para atualizá-la";
 	const notifBtn = menu.querySelector('[data-action="notif"]');
 	notifBtn.querySelector("i").className = acct.notifOn ? "bi bi-bell-slash" : "bi bi-bell";
 	notifBtn.querySelector("span").textContent = acct.notifOn ? "Desligar notificações" : "Ligar notificações";
@@ -665,7 +668,8 @@ $("#acct-context-menu").addEventListener("click", (e) => {
 	const action = btn.dataset.action;
 	pendingModal = action === "edit" || action === "remove";
 	closeContextMenu().then(() => {
-		if (action === "edit") openEditAccount(acct);
+		if (action === "refresh") window.electron.refreshAccount(acct.id);
+		else if (action === "edit") openEditAccount(acct);
 		else if (action === "notif") window.electron.toggleNotifications(acct.id, !acct.notifOn);
 		else if (action === "hibernate") window.electron.suspendAccount(acct.id);
 		else if (action === "remove") openDeleteAccount(acct);
