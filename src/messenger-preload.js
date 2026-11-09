@@ -5,6 +5,31 @@ let instanceName = null;
 let Constants = null;
 let lastUnread = 0;
 
+// ── WebAuthn (chave de acesso/Touch ID) ──
+// Builds não assinados pela Apple (assinatura ad-hoc) não podem exibir o
+// prompt de chave de acesso no macOS: faltam os entitlements
+// com.apple.developer.webauthn.*. Nesse estado o Chromium nunca mostra a
+// janela de segurança e a chamada fica pendendo para sempre — o login da
+// Microsoft trava em "Verificando...". Nas páginas de autenticação da
+// Microsoft escondemos o PublicKeyCredential para o site nem oferecer
+// passkey (cai direto no fluxo de senha); nas demais, fazemos as chamadas
+// falharem rápido para o site mostrar as alternativas de login.
+// Quando o app for assinado com Developer ID + entitlements webauthn,
+// remover este bloco.
+if (process.platform === "darwin") {
+	try {
+		const host = location.hostname;
+		if (/^(login\.live\.com|login\.microsoftonline\.com|login\.microsoftonline\.us|login\.partner\.microsoftonline\.cn)$/.test(host))
+			delete window.PublicKeyCredential;
+	} catch (e) {}
+	try {
+		const failFast = () => Promise.reject(new DOMException(
+			"Chave de acesso não suportada nesta versão do MultiChat.", "NotAllowedError"));
+		navigator.credentials.get = failFast;
+		navigator.credentials.create = failFast;
+	} catch (e) {}
+}
+
 // Intercept window.Notification to forward to main process
 class GenericNotificationServer {
 	constructor(title, options = {}) {
