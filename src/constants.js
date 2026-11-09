@@ -99,6 +99,7 @@ Constants.event.updateAccount           = "update-account";
 Constants.event.deleteAccount           = "delete-account";
 Constants.event.reorderAccounts         = "reorder-accounts";
 Constants.event.gotoAccount             = "goto-account";
+Constants.event.refreshAccount          = "refresh-account";
 Constants.event.reloadAccounts          = "reload-accounts";
 Constants.event.activeAccount           = "active-account";
 Constants.event.updateUnread            = "update-unread";

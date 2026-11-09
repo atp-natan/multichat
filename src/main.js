@@ -420,6 +420,10 @@ class MultiChatApp {
 			}));
 		});
 
+		ipcMain.on(Constants.event.refreshAccount, (event, id) => {
+			this.reloadAccountView(id);
+		});
+
 		ipcMain.on(Constants.event.addAccount, (event, data) => {
 			if (!isSafeAccountId(data.id)) return;
 			const svc = Constants.services[data.type] || Constants.services.whatsapp;
@@ -1535,8 +1539,12 @@ class MultiChatApp {
 	}
 
 	reloadCurrentView() {
-		if (!this.activeId) return;
-		const inst = this.instances[this.activeId];
+		this.reloadAccountView(this.activeId);
+	}
+
+	reloadAccountView(id) {
+		if (!id) return;
+		const inst = this.instances[id];
 		if (!inst || !inst.view) return;
 		inst.view.webContents.reload();
 		// O evento de reinicialização do preload é enviado pelo did-finish-load,
