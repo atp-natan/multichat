@@ -97,18 +97,31 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      # Assinatura ad-hoc (package.json mac.identity = "-"): o Gatekeeper deixa
-      # de chamar o app de "danificado" no Apple Silicon. Sem certificado pago
-      # ainda aparece o aviso de desenvolvedor não identificado, que dá para
-      # ignorar em Ajustes → Privacidade e Segurança. CSC_IDENTITY_AUTO_DISCOVERY
-      # não pode ser false aqui — isso pulava o codesign inteiro.
-      - name: Gerar dmg e zip (Intel e Apple Silicon)
+      - name: Gerar dmg e zip com assinatura ad-hoc
+        if: vars.MACOS_DEVELOPER_ID != 'true'
         run: |
           unset CSC_LINK || true
           unset CSC_KEY_PASSWORD || true
           npm run dist:mac -- --publish=never
 
+      - name: Gerar dmg e zip com Developer ID e notarização
+        if: vars.MACOS_DEVELOPER_ID == 'true'
+        env:
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.MACOS_APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.MACOS_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.MACOS_APPLE_TEAM_ID }}
+        run: |
+          : "${CSC_LINK:?Certificado MACOS_CSC_LINK ausente}"
+          : "${CSC_KEY_PASSWORD:?Senha MACOS_CSC_KEY_PASSWORD ausente}"
+          : "${APPLE_ID:?MACOS_APPLE_ID ausente}"
+          : "${APPLE_APP_SPECIFIC_PASSWORD:?MACOS_APP_SPECIFIC_PASSWORD ausente}"
+          : "${APPLE_TEAM_ID:?MACOS_APPLE_TEAM_ID ausente}"
+          npx electron-builder --config scripts/mac-developer-id.cjs --mac --arm64 --x64 --publish=never
+
       - name: Conferir assinatura ad-hoc
+        if: vars.MACOS_DEVELOPER_ID != 'true'
         run: |
           # codesign -dv imprime "Sealed Resources version=2 …", não "Sealed Resources=yes".
           apps=$(find dist -name 'MultiChat.app' -type d)
@@ -124,6 +137,22 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Conferir assinatura Developer ID e notarização
+        if: vars.MACOS_DEVELOPER_ID == 'true'
+        env:
+          APPLE_TEAM_ID: ${{ secrets.MACOS_APPLE_TEAM_ID }}
+        run: |
+          apps=$(find dist -name 'MultiChat.app' -type d)
+          test -n "$apps"
+          while IFS= read -r app; do
+            codesign --verify --deep --strict --verbose=2 "$app"
+            codesign -dv --verbose=4 "$app" 2>&1 | tee /tmp/multichat-codesign.txt
+            grep -Fqx "TeamIdentifier=$APPLE_TEAM_ID" /tmp/multichat-codesign.txt
+            grep -q '^Authority=Developer ID Application:' /tmp/multichat-codesign.txt
+            xcrun stapler validate "$app"
+            spctl --assess --type execute --verbose "$app"
+          done <<< "$apps"
 
       - name: Guardar artefatos
         uses: actions/upload-artifact@v4

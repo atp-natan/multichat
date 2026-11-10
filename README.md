@@ -40,7 +40,7 @@ Ao instalar uma versão nova, instale por cima da anterior: contas e preferênci
 
 ### macOS: primeira abertura
 
-O app não é notarizado pela Apple (isso exige o Apple Developer Program, pago). A partir da 1.7.1 o binário sai com **assinatura ad-hoc**, então o macOS não deve mais dizer que o app está “danificado”. Na primeira execução:
+As versões com assinatura **ad-hoc** não são notarizadas pela Apple e podem precisar dos passos abaixo. A partir da 1.7.1 essa assinatura evita que o macOS identifique o binário como “danificado” em condições normais. Na primeira execução:
 
 1. Clique com o botão direito no app → **Abrir** → **Abrir** (ou libere em *Ajustes do Sistema → Privacidade e Segurança → Abrir mesmo assim*).
 2. Se ainda aparecer “danificado”, remova a marca de quarentena:
@@ -48,6 +48,24 @@ O app não é notarizado pela Apple (isso exige o Apple Developer Program, pago)
    ```bash
    xattr -dr com.apple.quarantine /Applications/MultiChat.app
    ```
+
+A assinatura ad-hoc pode fazer o macOS pedir novamente permissões, como gravação de tela, após uma atualização. Versões assinadas com Developer ID e notarizadas usam uma identidade de desenvolvedor estável e não devem precisar desses passos de liberação.
+
+#### Configurar releases macOS com Developer ID
+
+O responsável pela conta deve ter uma assinatura ativa do Apple Developer Program e criar um certificado **Developer ID Application**, com a chave privada correspondente. Exporte-o como `.p12` protegido por senha. No repositório GitHub, em **Settings → Secrets and variables → Actions**, configure os secrets abaixo:
+
+| Secret | Valor |
+| --- | --- |
+| `MACOS_CSC_LINK` | Conteúdo do `.p12` codificado em base64, incluindo a chave privada |
+| `MACOS_CSC_KEY_PASSWORD` | Senha do arquivo `.p12` |
+| `MACOS_APPLE_ID` | E-mail da conta Apple autorizada a notarizar |
+| `MACOS_APP_SPECIFIC_PASSWORD` | Senha específica de app gerada para essa conta Apple |
+| `MACOS_APPLE_TEAM_ID` | Identificador da equipe Apple Developer |
+
+Depois, crie a variável de repositório `MACOS_DEVELOPER_ID` com valor `true`. A release passará a exigir todas as credenciais, assinar com Developer ID e notarizar os aplicativos Intel e Apple Silicon. O workflow valida o certificado, a equipe e a notarização antes de publicar. Sem essa variável, permanece o processo ad-hoc anterior. Mantenha o certificado e as senhas apenas nos secrets; não os adicione ao repositório.
+
+A primeira versão com a nova assinatura pode exigir que a permissão de gravação de tela seja concedida novamente. Teste a captura e a preservação da permissão em uma atualização posterior: a assinatura estável não elimina outras possíveis causas de falha na captura.
 
 ## Atualizações
 
