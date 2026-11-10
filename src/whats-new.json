@@ -2,6 +2,35 @@
 	"schema": 1,
 	"releases": [
 		{
+			"version": "1.9.0",
+			"date": "2026-11-09",
+			"title": "Novidades da 1.9.0",
+			"highlights": [
+				{
+					"id": "atualizar-conta",
+					"icon": "bi-arrow-clockwise",
+					"title": "Recarregue uma conta pelo menu de contexto",
+					"body": "Botão direito no avatar da conta agora tem a opção “Atualizar”: a página do mensageiro recarrega na hora, sem precisar abrir a conta antes nem mexer no app inteiro.",
+					"bullets": [
+						"Botão direito na conta → Atualizar",
+						"Só fica ativo quando a conta está aberta"
+					]
+				},
+				{
+					"id": "compartilhamento-tela",
+					"icon": "bi-display",
+					"title": "Compartilhamento de tela no Teams voltou a funcionar",
+					"body": "Ao compartilhar a tela no Teams, a janela escolhida no seletor nem sempre era a transmitida — e cancelar podia deixar a aba presa. Agora a seleção certa é repassada ao mensageiro e o cancelamento responde na hora."
+				},
+				{
+					"id": "login-microsoft",
+					"icon": "bi-person-check",
+					"title": "Login da Microsoft destravado no macOS",
+					"body": "O login da Microsoft podia travar em “Verificando...” no macOS: o prompt de chave de acesso nunca aparecia porque o app não tem os entitlements de passkey. As páginas de login da Microsoft agora seguem direto para o fluxo de senha em vez de esperar para sempre."
+				}
+			]
+		},
+		{
 			"version": "1.8.0",
 			"date": "2026-10-21",
 			"title": "Novidades da 1.8.0",
