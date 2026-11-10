@@ -57,7 +57,7 @@ Constants = {
 	}
 };
 
-Constants.version = "1.9.0";
+Constants.version = "1.9.1";
 
 Constants.whatsapp.url = "https://web.whatsapp.com/";
 

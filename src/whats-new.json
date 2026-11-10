@@ -2,6 +2,19 @@
 	"schema": 1,
 	"releases": [
 		{
+			"version": "1.9.1",
+			"date": "2026-11-10",
+			"title": "Novidades da 1.9.1",
+			"highlights": [
+				{
+					"id": "nova-logo",
+					"icon": "bi-palette",
+					"title": "O MultiChat está de cara nova",
+					"body": "A nova identidade visual chegou ao aplicativo, à barra de menus do macOS e ao site do MultiChat."
+				}
+			]
+		},
+		{
 			"version": "1.9.0",
 			"date": "2026-11-09",
 			"title": "Novidades da 1.9.0",
