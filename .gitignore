@@ -3,3 +3,6 @@
 node_modules/
 dist/
 
+
+# SVG original da logo (arquivo local)
+/logo-multi-chat.svg
